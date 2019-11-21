@@ -3,12 +3,18 @@ package com.rahmanaulia.latihansqlite
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.rahmanaulia.latihansqlite.adapter.NoteAdapter
 import com.rahmanaulia.latihansqlite.db.NoteHelper
+import com.rahmanaulia.latihansqlite.helper.MappingHelper
 import com.rahmanaulia.latihansqlite.model.Note
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
@@ -22,6 +28,28 @@ class MainActivity : AppCompatActivity() {
         initNoteHelper()
         onClick()
         initAdapter()
+        loadNote()
+    }
+
+    private fun loadNote() {
+        GlobalScope.launch(Dispatchers.Main){
+            progressbar.visibility = View.VISIBLE
+            val deferredNotes = async(Dispatchers.IO){
+                val cursor = noteHelper.queryAll()
+                MappingHelper.mapCursorToArrayList(cursor)
+            }
+            progressbar.visibility = View.INVISIBLE
+            val notes = deferredNotes.await()
+            if (notes.size > 0){
+                adapter.listNotes = notes
+            }else{
+                adapter.listNotes = ArrayList()
+                Toast.makeText(this@MainActivity
+                    , "Tidak ada saat ini"
+                    ,Toast.LENGTH_SHORT)
+                    .show()
+            }
+        }
     }
 
     private fun initNoteHelper() {
